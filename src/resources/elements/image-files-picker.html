@@ -1,0 +1,27 @@
+<template>
+  <div file-drop-target.bind="selectedFiles" class="jumbotron jumbotron-fluid">
+    <div class="container">
+      <div class="text-center">
+        <p>You can also drop image files anywhere inside this area</p>
+      </div>
+      <div class="row" repeat.for="row of files | chunk:3">
+        <div class="col-md-4" repeat.for="file of row">
+          <div class="card card-inverse">
+            <img class="card-img img-fluid"
+                alt="Preview for ${file.name & oneTime}"
+                blob-src.one-time="file">
+            <div class="card-img-overlay">
+              <button type="button" class="close" aria-label="Close" click.delegate="removeFile($index)">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <p class="card-text"><small class="text-muted">${file.name}</small></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <file-picker accept.bind="accept" multiple.one-time="true" files.bind="selectedFiles">
+    Add
+  </file-picker>
+</template>
