@@ -8,8 +8,8 @@ export class BlobSrc {
 
   constructor(private element: HTMLImageElement) {}
 
-  disposeObjectUrl() {
-    if (this.objectUrl && URL) {
+  private disposeObjectUrl() {
+    if (this.objectUrl) {
       this.element.src = '';
       URL.revokeObjectURL(this.objectUrl);
       this.objectUrl = null;
@@ -19,7 +19,7 @@ export class BlobSrc {
   valueChanged(value) {
     this.disposeObjectUrl();
 
-    if (Blob && URL && value instanceof Blob) {
+    if (value instanceof Blob) {
       this.objectUrl = URL.createObjectURL(value);
       this.element.src = this.objectUrl;
     }

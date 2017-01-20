@@ -1,7 +1,6 @@
 <template>
-  <require from="./file-picker.css" as="scoped"></require>
-
   <input type="file" accept="${accept}" multiple.bind="multiple" 
+         style="visibility: hidden; width: 0; height: 0;"
          files.bind="files" ref="input">
   <button class="btn btn-primary" click.delegate="input.click()">
     <slot>Select</slot>
