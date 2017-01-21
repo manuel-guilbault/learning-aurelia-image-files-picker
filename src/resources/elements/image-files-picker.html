@@ -1,5 +1,5 @@
 <template>
-  <div file-drop-target.bind="selectedFiles" 
+  <div file-drop-target.call="add(files)" 
        class="jumbotron jumbotron-fluid">
     <div class="container">
       <div class="text-center">
@@ -14,7 +14,7 @@
             <div class="card-img-overlay">
               <button type="button" class="close" 
                       aria-label="Close" 
-                      click.delegate="removeFile($index)">
+                      click.delegate="remove($index)">
                 <span aria-hidden="true">&times;</span>
               </button>
               <p class="card-text">
@@ -27,7 +27,8 @@
     </div>
   </div>
   <file-picker accept.bind="accept" multiple.one-time="true" 
-               files.bind="selectedFiles">
+               files.bind="selectedFiles" 
+               change.delegate="selectedFilesChanged()">
     Add
   </file-picker>
 </template>

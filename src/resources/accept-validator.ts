@@ -5,6 +5,10 @@ function escapeForPattern(s: string) {
 }
 
 function assemblePattern(parts: string[]) {
+  if (parts.length === 0) {
+    return null;
+  }
+
   const pattern = parts.join('|') || matchAll;
   return new RegExp(`^(${pattern})$`);
 }
@@ -35,6 +39,11 @@ export class AcceptValidator {
   constructor(private namePattern: RegExp, private typePattern: RegExp) {}
 
   isValid(file: File) {
-    return this.namePattern.test(file.name) || this.typePattern.test(file.type);
+    if (this.namePattern === null && this.typePattern === null) {
+      return true;
+    }
+
+    return (this.namePattern && this.namePattern.test(file.name))
+      || (this.typePattern && this.typePattern.test(file.type));
   }
 }

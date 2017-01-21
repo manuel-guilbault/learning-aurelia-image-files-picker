@@ -4,7 +4,7 @@ import {customAttribute, bindingMode, autoinject} from 'aurelia-framework';
 @autoinject
 export class FileDropTarget {
 
-  value: FileList;
+  value: FileList | (({files: FileList}) => void);
   
   constructor(private element: Element) {}
 
@@ -15,12 +15,19 @@ export class FileDropTarget {
   }
 
   private onDragOver = (e) => {
+    e.stopPropagation();
     e.preventDefault();
   };
 
   private onDrop = (e) => {
+    e.stopPropagation();
     e.preventDefault();
-    this.value = e.dataTransfer.files;
+
+    if (typeof this.value === 'function') {
+      this.value({ files: e.dataTransfer.files });
+    } else {
+      this.value = e.dataTransfer.files;
+    }
   };
 
   private onDragEnd = (e) => {

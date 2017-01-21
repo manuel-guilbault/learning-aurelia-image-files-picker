@@ -41,6 +41,55 @@ define('main',["require", "exports", "./environment"], function (require, export
     exports.configure = configure;
 });
 
+define('resources/accept-validator',["require", "exports"], function (require, exports) {
+    "use strict";
+    var matchAll = '.*';
+    function escapeForPattern(s) {
+        return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    }
+    function assemblePattern(parts) {
+        if (parts.length === 0) {
+            return null;
+        }
+        var pattern = parts.join('|') || matchAll;
+        return new RegExp("^(" + pattern + ")$");
+    }
+    var AcceptValidator = (function () {
+        function AcceptValidator(namePattern, typePattern) {
+            this.namePattern = namePattern;
+            this.typePattern = typePattern;
+        }
+        AcceptValidator.parse = function (accept) {
+            var parts = (accept || '')
+                .split(',')
+                .map(function (p) { return p.trim(); });
+            var nameParts = parts
+                .filter(function (p) { return p.startsWith('.'); })
+                .map(function (p) { return matchAll + escapeForPattern(p); });
+            var typeParts = parts
+                .filter(function (p) { return !p.startsWith('.'); })
+                .map(function (part) {
+                var _a = part.split('/', 2), type = _a[0], subType = _a[1];
+                return subType === '*'
+                    ? escapeForPattern(type + "/") + matchAll
+                    : escapeForPattern(part);
+            });
+            var namePattern = assemblePattern(nameParts);
+            var typePattern = assemblePattern(typeParts);
+            return new AcceptValidator(namePattern, typePattern);
+        };
+        AcceptValidator.prototype.isValid = function (file) {
+            if (this.namePattern === null && this.typePattern === null) {
+                return true;
+            }
+            return (this.namePattern && this.namePattern.test(file.name))
+                || (this.typePattern && this.typePattern.test(file.type));
+        };
+        return AcceptValidator;
+    }());
+    exports.AcceptValidator = AcceptValidator;
+});
+
 define('resources/index',["require", "exports"], function (require, exports) {
     "use strict";
     function configure(config) {
@@ -71,7 +120,7 @@ define('resources/attributes/blob-src',["require", "exports", "aurelia-framework
             this.element = element;
         }
         BlobSrc.prototype.disposeObjectUrl = function () {
-            if (this.objectUrl && URL) {
+            if (this.objectUrl) {
                 this.element.src = '';
                 URL.revokeObjectURL(this.objectUrl);
                 this.objectUrl = null;
@@ -79,7 +128,7 @@ define('resources/attributes/blob-src',["require", "exports", "aurelia-framework
         };
         BlobSrc.prototype.valueChanged = function (value) {
             this.disposeObjectUrl();
-            if (Blob && URL && value instanceof Blob) {
+            if (value instanceof Blob) {
                 this.objectUrl = URL.createObjectURL(value);
                 this.element.src = this.objectUrl;
             }
@@ -113,11 +162,18 @@ define('resources/attributes/file-drop-target',["require", "exports", "aurelia-f
             var _this = this;
             this.element = element;
             this.onDragOver = function (e) {
+                e.stopPropagation();
                 e.preventDefault();
             };
             this.onDrop = function (e) {
+                e.stopPropagation();
                 e.preventDefault();
-                _this.value = e.dataTransfer.files;
+                if (typeof _this.value === 'function') {
+                    _this.value({ files: e.dataTransfer.files });
+                }
+                else {
+                    _this.value = e.dataTransfer.files;
+                }
             };
             this.onDragEnd = function (e) {
                 e.dataTransfer.clearData();
@@ -155,15 +211,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 define('resources/elements/file-picker',["require", "exports", "aurelia-framework"], function (require, exports, aurelia_framework_1) {
     "use strict";
     var FilePicker = (function () {
-        function FilePicker(element) {
-            var _this = this;
-            this.element = element;
+        function FilePicker() {
             this.accept = '';
             this.multiple = false;
-            element.focus = function () { return _this.input.click(); };
         }
         FilePicker.prototype.filesChanged = function () {
-            this.element.dispatchEvent(aurelia_framework_1.DOM.createCustomEvent('blur', { bubbles: true, cancelable: false }));
+            if (!this.files) {
+                this.clearSelection();
+            }
+        };
+        FilePicker.prototype.clearSelection = function () {
+            this.input.type = '';
+            this.input.type = 'file';
         };
         return FilePicker;
     }());
@@ -177,13 +236,11 @@ define('resources/elements/file-picker',["require", "exports", "aurelia-framewor
     ], FilePicker.prototype, "multiple", void 0);
     __decorate([
         aurelia_framework_1.bindable({ defaultBindingMode: aurelia_framework_1.bindingMode.twoWay }),
-        __metadata("design:type", Object)
+        __metadata("design:type", FileList)
     ], FilePicker.prototype, "files", void 0);
     FilePicker = __decorate([
         aurelia_framework_1.customElement('file-picker'),
-        aurelia_framework_1.inject(Element),
-        aurelia_framework_1.useView('./file-picker.html'),
-        __metadata("design:paramtypes", [HTMLElement])
+        aurelia_framework_1.useView('./file-picker.html')
     ], FilePicker);
     exports.FilePicker = FilePicker;
 });
@@ -200,36 +257,29 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 define('resources/elements/image-files-picker',["require", "exports", "aurelia-framework", "../accept-validator"], function (require, exports, aurelia_framework_1, accept_validator_1) {
     "use strict";
     var ImageFilesPicker = (function () {
-        function ImageFilesPicker(observerLocator) {
-            var _this = this;
+        function ImageFilesPicker() {
             this.files = [];
             this.accept = 'image/*';
-            this.appendSelectedFiles = function () {
-                if (_this.selectedFiles) {
-                    for (var i = 0; i < _this.selectedFiles.length; ++i) {
-                        var file = _this.selectedFiles.item(i);
-                        var isValid = _this.acceptValidator.isValid(file);
-                        if (isValid) {
-                            _this.files.push(file);
-                        }
-                    }
-                    _this.selectedFiles = null;
-                }
-            };
-            this.selectedFilesObserver = observerLocator.getObserver(this, 'selectedFiles');
-            this.acceptChanged();
+            this.acceptValidator = accept_validator_1.AcceptValidator.parse(this.accept);
         }
-        ImageFilesPicker.prototype.attached = function () {
-            this.selectedFilesObserver.subscribe(this.appendSelectedFiles);
-        };
         ImageFilesPicker.prototype.acceptChanged = function () {
             this.acceptValidator = accept_validator_1.AcceptValidator.parse(this.accept);
         };
-        ImageFilesPicker.prototype.detached = function () {
-            this.selectedFilesObserver.unsubscribe(this.appendSelectedFiles);
+        ImageFilesPicker.prototype.add = function (files) {
+            for (var i = 0; i < files.length; ++i) {
+                var file = files.item(i);
+                var isValid = this.acceptValidator.isValid(file);
+                if (isValid) {
+                    this.files.push(file);
+                }
+            }
         };
-        ImageFilesPicker.prototype.removeFile = function (index) {
+        ImageFilesPicker.prototype.remove = function (index) {
             this.files.splice(index, 1);
+        };
+        ImageFilesPicker.prototype.selectedFilesChanged = function () {
+            this.add(this.selectedFiles);
+            this.selectedFiles = null;
         };
         return ImageFilesPicker;
     }());
@@ -243,49 +293,10 @@ define('resources/elements/image-files-picker',["require", "exports", "aurelia-f
     ], ImageFilesPicker.prototype, "accept", void 0);
     ImageFilesPicker = __decorate([
         aurelia_framework_1.customElement('image-files-picker'),
-        aurelia_framework_1.autoinject,
         aurelia_framework_1.useView('./image-files-picker.html'),
-        __metadata("design:paramtypes", [aurelia_framework_1.ObserverLocator])
+        aurelia_framework_1.autoinject
     ], ImageFilesPicker);
     exports.ImageFilesPicker = ImageFilesPicker;
-});
-
-define('resources/accept-validator',["require", "exports"], function (require, exports) {
-    "use strict";
-    function escape(s) {
-        return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    }
-    function assemblePattern(parts) {
-        var values = parts.map(escape).join('|');
-        return new RegExp("^(" + (values || '.*') + ")");
-    }
-    var AcceptValidator = (function () {
-        function AcceptValidator(namePattern, typePattern) {
-            this.namePattern = namePattern;
-            this.typePattern = typePattern;
-        }
-        AcceptValidator.parse = function (accept) {
-            var parts = accept
-                .split(',')
-                .map(function (p) { return p.trim(); });
-            var nameParts = parts
-                .filter(function (p) { return p.startsWith('.'); });
-            var typeParts = parts
-                .filter(function (p) { return !p.startsWith('.'); })
-                .map(function (part) {
-                var _a = part.split('/', 2), type = _a[0], subType = _a[1];
-                return subType === '*' ? type + "/" : part;
-            });
-            var namePattern = assemblePattern(nameParts);
-            var typePattern = assemblePattern(typeParts);
-            return new AcceptValidator(namePattern, typePattern);
-        };
-        AcceptValidator.prototype.isValid = function (file) {
-            return this.namePattern.test(file.name) || this.typePattern.test(file.type);
-        };
-        return AcceptValidator;
-    }());
-    exports.AcceptValidator = AcceptValidator;
 });
 
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -300,9 +311,6 @@ define('resources/value-converters/chunk',["require", "exports", "aurelia-framew
         function Chunk() {
         }
         Chunk.prototype.toView = function (array, size) {
-            if (size <= 0) {
-                throw new RangeError('Chunk size must be greater than zero');
-            }
             var result = [];
             var nbChunks = Math.ceil(array.length / size);
             for (var i = 0; i < nbChunks; ++i) {
@@ -319,7 +327,6 @@ define('resources/value-converters/chunk',["require", "exports", "aurelia-framew
 });
 
 define('text!app.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"bootstrap/css/bootstrap.min.css\"></require>\n  \n  <section class=\"container\">\n    <image-files-picker files.bind=\"files\"></image-files-picker>\n  </section>\n</template>\n"; });
-define('text!resources/elements/file-picker.css', ['module'], function(module) { module.exports = "file-picker input[type=file] {\n  visibility: hidden;\n  width: 0;\n  height: 0;\n}\n"; });
-define('text!resources/elements/file-picker.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"./file-picker.css\" as=\"scoped\"></require>\n\n  <input type=\"file\" accept=\"${accept}\" multiple.bind=\"multiple\" \n         files.bind=\"files\" ref=\"input\">\n  <button class=\"btn btn-primary\" click.delegate=\"input.click()\">\n    <slot>Select</slot>\n  </button>\n</template>\n"; });
-define('text!resources/elements/image-files-picker.html', ['module'], function(module) { module.exports = "<template>\n  <div file-drop-target.bind=\"selectedFiles\" class=\"jumbotron jumbotron-fluid\">\n    <div class=\"container\">\n      <div class=\"text-center\">\n        <p>You can also drop image files anywhere inside this area</p>\n      </div>\n      <div class=\"row\" repeat.for=\"row of files | chunk:3\">\n        <div class=\"col-md-4\" repeat.for=\"file of row\">\n          <div class=\"card card-inverse\">\n            <img class=\"card-img img-fluid\"\n                alt=\"Preview for ${file.name & oneTime}\"\n                blob-src.one-time=\"file\">\n            <div class=\"card-img-overlay\">\n              <button type=\"button\" class=\"close\" aria-label=\"Close\" click.delegate=\"removeFile($index)\">\n                <span aria-hidden=\"true\">&times;</span>\n              </button>\n              <p class=\"card-text\"><small class=\"text-muted\">${file.name}</small></p>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <file-picker accept.bind=\"accept\" multiple.one-time=\"true\" files.bind=\"selectedFiles\">\n    Add\n  </file-picker>\n</template>\n"; });
+define('text!resources/elements/file-picker.html', ['module'], function(module) { module.exports = "<template>\n  <input type=\"file\" accept=\"${accept}\" multiple.bind=\"multiple\" \n         style=\"visibility: hidden; width: 0; height: 0;\"\n         files.bind=\"files\" ref=\"input\">\n  <button class=\"btn btn-primary\" click.delegate=\"input.click()\">\n    <slot>Select</slot>\n  </button>\n</template>\n"; });
+define('text!resources/elements/image-files-picker.html', ['module'], function(module) { module.exports = "<template>\n  <div file-drop-target.call=\"add(files)\" \n       class=\"jumbotron jumbotron-fluid\">\n    <div class=\"container\">\n      <div class=\"text-center\">\n        <p>You can also drop image files anywhere inside this area</p>\n      </div>\n      <div class=\"row\" repeat.for=\"row of files | chunk:3\">\n        <div class=\"col-md-4\" repeat.for=\"file of row\">\n          <div class=\"card card-inverse\">\n            <img class=\"card-img img-fluid\"\n                alt=\"Preview for ${file.name & oneTime}\"\n                blob-src.one-time=\"file\">\n            <div class=\"card-img-overlay\">\n              <button type=\"button\" class=\"close\" \n                      aria-label=\"Close\" \n                      click.delegate=\"remove($index)\">\n                <span aria-hidden=\"true\">&times;</span>\n              </button>\n              <p class=\"card-text\">\n                <small class=\"text-muted\">${file.name}</small>\n              </p>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <file-picker accept.bind=\"accept\" multiple.one-time=\"true\" \n               files.bind=\"selectedFiles\" \n               change.delegate=\"selectedFilesChanged()\">\n    Add\n  </file-picker>\n</template>\n"; });
 //# sourceMappingURL=app-bundle.js.map
