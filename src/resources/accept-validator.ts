@@ -36,7 +36,7 @@ export class AcceptValidator {
     return new AcceptValidator(namePattern, typePattern);
   }
 
-  constructor(private namePattern: RegExp, private typePattern: RegExp) {}
+  constructor(private namePattern: RegExp = null, private typePattern: RegExp = null) {}
 
   isValid(file: File) {
     if (this.namePattern === null && this.typePattern === null) {

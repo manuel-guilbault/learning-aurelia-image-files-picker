@@ -56,6 +56,8 @@ define('resources/accept-validator',["require", "exports"], function (require, e
     }
     var AcceptValidator = (function () {
         function AcceptValidator(namePattern, typePattern) {
+            if (namePattern === void 0) { namePattern = null; }
+            if (typePattern === void 0) { typePattern = null; }
             this.namePattern = namePattern;
             this.typePattern = typePattern;
         }
@@ -164,6 +166,7 @@ define('resources/attributes/file-drop-target',["require", "exports", "aurelia-f
             this.onDragOver = function (e) {
                 e.stopPropagation();
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
             };
             this.onDrop = function (e) {
                 e.stopPropagation();
@@ -176,6 +179,8 @@ define('resources/attributes/file-drop-target',["require", "exports", "aurelia-f
                 }
             };
             this.onDragEnd = function (e) {
+                e.stopPropagation();
+                e.preventDefault();
                 e.dataTransfer.clearData();
             };
         }
@@ -277,7 +282,7 @@ define('resources/elements/image-files-picker',["require", "exports", "aurelia-f
         ImageFilesPicker.prototype.remove = function (index) {
             this.files.splice(index, 1);
         };
-        ImageFilesPicker.prototype.selectedFilesChanged = function () {
+        ImageFilesPicker.prototype.addSelectedFiles = function () {
             this.add(this.selectedFiles);
             this.selectedFiles = null;
         };
@@ -293,8 +298,7 @@ define('resources/elements/image-files-picker',["require", "exports", "aurelia-f
     ], ImageFilesPicker.prototype, "accept", void 0);
     ImageFilesPicker = __decorate([
         aurelia_framework_1.customElement('image-files-picker'),
-        aurelia_framework_1.useView('./image-files-picker.html'),
-        aurelia_framework_1.autoinject
+        aurelia_framework_1.useView('./image-files-picker.html')
     ], ImageFilesPicker);
     exports.ImageFilesPicker = ImageFilesPicker;
 });
@@ -314,7 +318,8 @@ define('resources/value-converters/chunk',["require", "exports", "aurelia-framew
             var result = [];
             var nbChunks = Math.ceil(array.length / size);
             for (var i = 0; i < nbChunks; ++i) {
-                result.push(array.slice(i * size, i * size + size));
+                var offset = i * size;
+                result.push(array.slice(offset, offset + size));
             }
             return result;
         };
@@ -327,6 +332,6 @@ define('resources/value-converters/chunk',["require", "exports", "aurelia-framew
 });
 
 define('text!app.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"bootstrap/css/bootstrap.min.css\"></require>\n  \n  <section class=\"container\">\n    <image-files-picker files.bind=\"files\"></image-files-picker>\n  </section>\n</template>\n"; });
-define('text!resources/elements/file-picker.html', ['module'], function(module) { module.exports = "<template>\n  <input type=\"file\" accept=\"${accept}\" multiple.bind=\"multiple\" \n         style=\"visibility: hidden; width: 0; height: 0;\"\n         files.bind=\"files\" ref=\"input\">\n  <button class=\"btn btn-primary\" click.delegate=\"input.click()\">\n    <slot>Select</slot>\n  </button>\n</template>\n"; });
-define('text!resources/elements/image-files-picker.html', ['module'], function(module) { module.exports = "<template>\n  <div file-drop-target.call=\"add(files)\" \n       class=\"jumbotron jumbotron-fluid\">\n    <div class=\"container\">\n      <div class=\"text-center\">\n        <p>You can also drop image files anywhere inside this area</p>\n      </div>\n      <div class=\"row\" repeat.for=\"row of files | chunk:3\">\n        <div class=\"col-md-4\" repeat.for=\"file of row\">\n          <div class=\"card card-inverse\">\n            <img class=\"card-img img-fluid\"\n                alt=\"Preview for ${file.name & oneTime}\"\n                blob-src.one-time=\"file\">\n            <div class=\"card-img-overlay\">\n              <button type=\"button\" class=\"close\" \n                      aria-label=\"Close\" \n                      click.delegate=\"remove($index)\">\n                <span aria-hidden=\"true\">&times;</span>\n              </button>\n              <p class=\"card-text\">\n                <small class=\"text-muted\">${file.name}</small>\n              </p>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <file-picker accept.bind=\"accept\" multiple.one-time=\"true\" \n               files.bind=\"selectedFiles\" \n               change.delegate=\"selectedFilesChanged()\">\n    Add\n  </file-picker>\n</template>\n"; });
+define('text!resources/elements/file-picker.html', ['module'], function(module) { module.exports = "<template>\n  <input type=\"file\" accept.bind=\"accept\" multiple.bind=\"multiple\" \n         files.bind=\"files\" ref=\"input\"\n         style=\"visibility: hidden; width: 0; height: 0;\">\n  <button class=\"btn btn-primary\" click.delegate=\"input.click()\">\n    <slot>Select</slot>\n  </button>\n</template>\n"; });
+define('text!resources/elements/image-files-picker.html', ['module'], function(module) { module.exports = "<template>\n  <div file-drop-target.call=\"add(files)\" \n       class=\"jumbotron jumbotron-fluid\">\n    <div class=\"container\">\n      <div class=\"text-center\">\n        <p>You can drop image files anywhere inside this area</p>\n      </div>\n      <div class=\"row\" repeat.for=\"row of files | chunk:3\">\n        <div class=\"col-md-4\" repeat.for=\"file of row\">\n          <div class=\"card card-inverse\">\n            <img class=\"card-img img-fluid\"\n                alt=\"Preview for ${file.name & oneTime}\"\n                blob-src.one-time=\"file\">\n            <div class=\"card-img-overlay\">\n              <button type=\"button\" class=\"close\" \n                      aria-label=\"Remove\" \n                      click.delegate=\"remove($index)\">\n                <span aria-hidden=\"true\">&times;</span>\n              </button>\n              <p class=\"card-text\">\n                <small class=\"text-muted\">${file.name & oneTime}</small>\n              </p>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>\n  <file-picker accept.bind=\"accept\" multiple.one-time=\"true\" \n               files.bind=\"selectedFiles\" \n               change.delegate=\"addSelectedFiles()\">\n    Add\n  </file-picker>\n</template>\n"; });
 //# sourceMappingURL=app-bundle.js.map

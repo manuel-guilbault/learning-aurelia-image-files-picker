@@ -17,6 +17,8 @@ export class FileDropTarget {
   private onDragOver = (e) => {
     e.stopPropagation();
     e.preventDefault();
+
+    e.dataTransfer.dropEffect = 'copy';
   };
 
   private onDrop = (e) => {
@@ -31,6 +33,9 @@ export class FileDropTarget {
   };
 
   private onDragEnd = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     e.dataTransfer.clearData();
   };
 

@@ -1,4 +1,4 @@
-import {customElement, useView, bindable, bindingMode, DOM} from 'aurelia-framework';
+import {customElement, useView, bindable, bindingMode} from 'aurelia-framework';
 
 @customElement('file-picker')
 @useView('./file-picker.html')

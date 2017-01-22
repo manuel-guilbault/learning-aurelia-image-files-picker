@@ -1,9 +1,8 @@
-import {customElement, useView, autoinject, bindable, bindingMode} from 'aurelia-framework';
+import {customElement, useView, bindable, bindingMode} from 'aurelia-framework';
 import {AcceptValidator} from '../accept-validator';
 
 @customElement('image-files-picker')
 @useView('./image-files-picker.html')
-@autoinject
 export class ImageFilesPicker {
 
   @bindable({ defaultBindingMode: bindingMode.twoWay }) files: File[] = [];
@@ -30,7 +29,7 @@ export class ImageFilesPicker {
     this.files.splice(index, 1);
   }
 
-  selectedFilesChanged() {
+  addSelectedFiles() {
     this.add(this.selectedFiles);
     this.selectedFiles = null;
   }

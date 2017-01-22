@@ -1,7 +1,7 @@
 <template>
-  <input type="file" accept="${accept}" multiple.bind="multiple" 
-         style="visibility: hidden; width: 0; height: 0;"
-         files.bind="files" ref="input">
+  <input type="file" accept.bind="accept" multiple.bind="multiple" 
+         files.bind="files" ref="input"
+         style="visibility: hidden; width: 0; height: 0;">
   <button class="btn btn-primary" click.delegate="input.click()">
     <slot>Select</slot>
   </button>

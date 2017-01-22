@@ -6,7 +6,8 @@ export class Chunk {
     let result = [];
     let nbChunks = Math.ceil(array.length / size);
     for (let i = 0; i < nbChunks; ++i) {
-      result.push(array.slice(i * size, i * size + size));
+      const offset = i * size;
+      result.push(array.slice(offset, offset + size));
     }
     return result;
   }

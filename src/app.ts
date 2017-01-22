@@ -1,3 +1,3 @@
 export class App {
-  files = [];
+  files: File[] = [];
 }

@@ -3,7 +3,7 @@
        class="jumbotron jumbotron-fluid">
     <div class="container">
       <div class="text-center">
-        <p>You can also drop image files anywhere inside this area</p>
+        <p>You can drop image files anywhere inside this area</p>
       </div>
       <div class="row" repeat.for="row of files | chunk:3">
         <div class="col-md-4" repeat.for="file of row">
@@ -13,12 +13,12 @@
                 blob-src.one-time="file">
             <div class="card-img-overlay">
               <button type="button" class="close" 
-                      aria-label="Close" 
+                      aria-label="Remove" 
                       click.delegate="remove($index)">
                 <span aria-hidden="true">&times;</span>
               </button>
               <p class="card-text">
-                <small class="text-muted">${file.name}</small>
+                <small class="text-muted">${file.name & oneTime}</small>
               </p>
             </div>
           </div>
@@ -28,7 +28,7 @@
   </div>
   <file-picker accept.bind="accept" multiple.one-time="true" 
                files.bind="selectedFiles" 
-               change.delegate="selectedFilesChanged()">
+               change.delegate="addSelectedFiles()">
     Add
   </file-picker>
 </template>
