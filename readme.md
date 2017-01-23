@@ -1,7 +1,7 @@
 # Creating an image files picker
 
 This is the code samples for the 
-[Creating an image files picker](http://blog.aurelia.io/???) article.
+*Creating an image files picker* article.
 
 ## Running the samples
 
