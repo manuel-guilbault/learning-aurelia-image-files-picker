@@ -1,7 +1,7 @@
 # Creating an image files picker
 
 This is the code samples for the 
-*Creating an image files picker* article.
+[Creating an image files picker](http://blog.aurelia.io/2017/02/01/announcing-learning-aurelia-from-packt-publishing/) article.
 
 ## Running the samples
 
