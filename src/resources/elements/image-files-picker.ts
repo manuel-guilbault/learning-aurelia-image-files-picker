@@ -1,4 +1,4 @@
-import {customElement, useView, bindable, bindingMode} from 'aurelia-framework';
+import {customElement, useView, bindable, bindingMode, observable} from 'aurelia-framework';
 import {AcceptValidator} from '../accept-validator';
 
 @customElement('image-files-picker')
@@ -9,10 +9,17 @@ export class ImageFilesPicker {
   @bindable accept = 'image/*';
   private acceptValidator: AcceptValidator = AcceptValidator.parse(this.accept);
 
-  selectedFiles: FileList;
+  @observable() selectedFiles: FileList;
 
   acceptChanged() {
     this.acceptValidator = AcceptValidator.parse(this.accept);
+  }
+
+  selectedFilesChanged() {
+    if (this.selectedFiles) {
+      this.add(this.selectedFiles);
+      this.selectedFiles = null;
+    }
   }
 
   add(files: FileList) {
@@ -27,10 +34,5 @@ export class ImageFilesPicker {
 
   remove(index) {
     this.files.splice(index, 1);
-  }
-
-  addSelectedFiles() {
-    this.add(this.selectedFiles);
-    this.selectedFiles = null;
   }
 }
